@@ -49,22 +49,37 @@ Slow burn alerts (ticket)
 Webhook delivery to custom alert receiver
 
 📁 Project Structure
+
 observability-project/
+
 ├── app/              # Instrumented Python API
+
 ├── loadgen/          # Traffic generator
+
 ├── alert-logger/     # Alertmanager webhook receiver
+
 ├── prometheus/       # Prometheus config & rules
+
 ├── grafana/          # Provisioned datasources
+
 ├── dashboards/       # Grafana dashboards
+
 ├── loki/
+
 ├── tempo/
+
 ├── otel-collector/
+
 ├── runbooks/         # Incident response runbooks
+
 ├── postmortems/      # Incident postmortems
+
 ├── docker-compose.yml
+
 └── README.md
 
 ▶️ How to Run
+
 Prerequisites
 
 Docker Desktop
@@ -75,14 +90,18 @@ Start the stack
 docker compose up -d --build
 
 🌍 Access Points
+
 Service	URL
+
 API	http://localhost:8080
 
 Grafana	http://localhost:3000
  (admin / admin)
+ 
 Prometheus	http://localhost:9090
 
 Alertmanager	http://localhost:9093
+
 📊 Observability Capabilities
 
 Metrics
@@ -112,6 +131,7 @@ curl -X POST http://localhost:8080/api/chaos/latency?ms=800
 
 Disable chaos
 curl -X POST http://localhost:8080/api/chaos/errors?rate=0
+
 curl -X POST http://localhost:8080/api/chaos/latency?ms=0
 
 🚑 Incident Response
