@@ -1,0 +1,57 @@
+groups:
+  - name: slis
+    rules:
+      - record: job:http_requests_total:rate5m
+        expr: sum by (service, path) (rate(http_requests_total[5m]))
+
+      - record: job:http_requests_errors_total:rate5m
+        expr: sum by (service, path) (rate(http_requests_total{status=~"5..|502"}[5m]))
+
+      - record: job:http_requests_error_ratio:rate5m
+        expr: job:http_requests_errors_total:rate5m / clamp_min(job:http_requests_total:rate5m, 1e-9)
+
+      - record: job:http_request_duration_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (le, service, path) (rate(http_request_duration_seconds_bucket[5m])))
+
+  - name: slo_burn_rate
+    rules:
+      - record: slo:availability:error_ratio_5m
+        expr: sum(rate(http_requests_total{status=~"5..|502"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1e-9)
+
+      - record: slo:availability:error_ratio_1h
+        expr: sum(rate(http_requests_total{status=~"5..|502"}[1h])) / clamp_min(sum(rate(http_requests_total[1h])), 1e-9)
+
+      - record: slo:availability:error_ratio_30m
+        expr: sum(rate(http_requests_total{status=~"5..|502"}[30m])) / clamp_min(sum(rate(http_requests_total[30m])), 1e-9)
+
+      - record: slo:availability:error_ratio_6h
+        expr: sum(rate(http_requests_total{status=~"5..|502"}[6h])) / clamp_min(sum(rate(http_requests_total[6h])), 1e-9)
+
+  - name: alerts
+    rules:
+      - alert: SLOAvailabilityBurnRateFast
+        expr: (slo:availability:error_ratio_5m > (14.4 * 0.001)) and (slo:availability:error_ratio_1h > (14.4 * 0.001))
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "Fast burn rate: availability SLO at risk"
+          description: "Error budget burning fast (5m+1h). Investigate immediately. Current 5m error ratio={{ $value }}."
+
+      - alert: SLOAvailabilityBurnRateSlow
+        expr: (slo:availability:error_ratio_30m > (6 * 0.001)) and (slo:availability:error_ratio_6h > (6 * 0.001))
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Slow burn rate: availability SLO degrading"
+          description: "Error budget burning slowly (30m+6h). Plan mitigation. Current 30m error ratio={{ $value }}."
+
+      - alert: HighLatencyP95
+        expr: max_over_time(job:http_request_duration_seconds:p95_5m[10m]) > 0.5
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "High latency (p95) detected"
+          description: "p95 latency > 500ms sustained. Current p95={{ $value }}s."
